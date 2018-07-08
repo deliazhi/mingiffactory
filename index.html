@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>动图小工厂</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdn.bootcss.com/bootstrap/4.1.0/js/bootstrap.min.js"></script>
+    <script src="https://cdn.bootcss.com/fabric.js/2.3.0/fabric.min.js"></script>
+    <script src="https://cdn.bootcss.com/downloadjs/1.4.7/download.min.js"></script>
+    <script src="https://cdn.bootcss.com/keypress/2.1.5/keypress.min.js"></script>
+    <script src="https://cdn.bootcss.com/gif.js/0.2.0/gif.js"></script>
+    <link rel="stylesheet" type="text/css" media="screen" href="main.css" />
+    <link href="https://cdn.bootcss.com/bootstrap/4.1.0/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <nav class="col-md-2 d-none d-md-block bg-light sidebar">
+                <div class="sidebar-sticky">
+                    
+                </div>
+            </nav>
+    
+            <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">动图小工厂</h1>
+                </div>
+    
+                <canvas class="w-100" id="myAvatar" width="460" height="460"></canvas>
+                <div>
+                    <button class="btn btn-primary" onclick="downloadit()">下载图片</button>
+                    <button class="btn btn-outline-secondary" onclick="debug()">调试</button>
+                    <button class="btn btn-outline-secondary" onclick="pic_add()">加入动图序列</button>
+                    <button class="btn btn-outline-secondary" onclick="pic_build()">下载动图</button>
+                </div>
+                <div class="form-group editBar">
+                    <input type="text" class="form-control" id="theText" placeholder="点击画布中的文字进行修改" disabled="disabled" onchange="update_text()">
+                </div>
+                <ul class="gif-images">
+
+                </ul>
+            </main>
+        </div>
+    </div>
+    <script>
+        var canvas = new fabric.Canvas('myAvatar',{preserveObjectStacking:true});
+        canvas.backgroundColor='rgba(255,255,255,1)';
+        
+        fabric.Image.fromURL('avatar.png', function (oImg) {
+            //canvas.add(oImg);
+            canvas.insertAt(oImg,0);
+        });
+
+        fabric.Image.fromURL('github.png', function (oImg) {
+            canvas.insertAt(oImg,1);
+            oImg.set('top',48);
+            oImg.set('left', 69);
+            oImg.set('angle', 338);
+            oImg.set('scaleX', 0.45);
+            oImg.set('scaleY', 0.45);
+            oImg.set({cornerSize:15,padding:5,transparentCorners:true,cornerStyle:'circle',cornerColor:'red',borderColor:'red'});
+        });  
+        
+        var text=new fabric.Text('hello world',{top:100,left:100});
+        canvas.insertAt(text,2);
+        text.set('top',156);
+        text.set('left', 126);
+        text.set('angle', 341);
+        text.set('fill', 'white');
+        text.set({ cornerSize: 15, padding: 5, transparentCorners: true, cornerStyle: 'circle', cornerColor: 'red', borderColor:
+'red' });
+
+        $(function(){
+            var listener = new window.keypress.Listener();
+            
+            listener.simple_combo("shift s", function () {
+                console.log("You pressed shift and s");
+                var obj = canvas.getActiveObject();
+                if (obj) {
+                    canvas.remove(obj);
+                }
+            });
+
+            listener.simple_combo("]", function () {
+                var obj = canvas.getActiveObject();
+                if (obj) { 
+                    canvas.sendBackwards(obj); 
+                } 
+            });
+
+            listener.simple_combo("[", function () {
+                var obj = canvas.getActiveObject();
+                if (obj) {
+                    canvas.bringForward(obj);
+                }
+            });
+
+            text_init();
+        });
+
+        function text_init(){
+            $(canvas.getObjects()).each((index,item)=>{
+                if(item.type=='text'){
+                    item.on("selected", () => {
+                        $("#theText").val(item.text);
+                        $("#theText").prop("disabled", false);
+                    });
+                }
+            });
+        }
+        
+        function update_text(){
+            var newText=$("#theText").val();
+            if(newText.length>0){
+                var obj=canvas.getActiveObject();
+                if(obj&&obj.type=='text'){
+                    obj.set('text',newText);
+                    canvas.renderAll();
+                }
+            }
+        }
+
+        function downloadit(){
+            //console.log(canvas.toDataURL('png'));
+            download(canvas.toDataURL('png'),'avatar.png','image/png');
+        }
+
+        function debug(){
+            var obj = canvas.getActiveObject();
+            if(obj!=undefined){
+                console.log("top=" + obj.top);
+                console.log("left=" + obj.left);
+                console.log("angle=" + obj.angle);
+                console.log("scaleX=" + obj.scaleX);
+                console.log("scaleY=" + obj.scaleY);
+            }
+        }
+
+        function pic_add(){
+            var data_url=canvas.toDataURL('png');
+            var li=$("<li><img src='"+data_url+"'/></li>");
+            $(".gif-images").append(li);
+        }
+
+        function pic_build(){
+            var gif = new GIF({
+                workers: 2,
+                quality: 10,
+                width:460,
+                height:460
+            });
+            $(".gif-images li img").each((index,item)=>{
+                gif.addFrame(item,{delay:1000});
+            });
+            gif.on("finished",function(blob){
+                download(blob,"avatar.gif","image/gif");
+            });
+            gif.render();
+        }
+    </script>
+</body>
+</html>
